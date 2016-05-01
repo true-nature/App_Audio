@@ -587,17 +587,13 @@ Wire Wire Line
 Wire Wire Line
 	4050 2400 4050 4400
 Wire Wire Line
-	4050 4400 4850 4400
-Wire Wire Line
-	4850 4400 4850 4600
+	4050 4400 5050 4400
 Wire Wire Line
 	4250 2300 3950 2300
 Wire Wire Line
 	3950 2300 3950 4200
 Wire Wire Line
-	3950 4200 5050 4200
-Wire Wire Line
-	5050 4200 5050 4600
+	3950 4200 4850 4200
 Wire Wire Line
 	4250 1950 3850 1950
 Wire Wire Line
@@ -609,11 +605,11 @@ Wire Wire Line
 Wire Wire Line
 	5750 3000 6000 3000
 Wire Wire Line
-	6000 3000 6000 4400
+	6000 3000 6000 4200
 Wire Wire Line
-	6000 4400 4950 4400
+	6000 4200 4950 4200
 Wire Wire Line
-	4950 4400 4950 4600
+	4950 4200 4950 4600
 NoConn ~ 4250 2050
 NoConn ~ 4250 2150
 NoConn ~ 5750 2100
@@ -792,13 +788,13 @@ Wire Wire Line
 	6600 2800 6600 2750
 Text Label 4350 4300 0    60   ~ 0
 CFG
-Text Label 4350 4200 0    60   ~ 0
+Text Label 4350 4400 0    60   ~ 0
 TXD
-Text Label 4300 4400 0    60   ~ 0
+Text Label 4350 4200 0    60   ~ 0
 RXD
 Text Label 4250 4500 0    60   ~ 0
 RST
-Text Label 5450 4400 0    60   ~ 0
+Text Label 5350 4200 0    60   ~ 0
 PRG
 Text Label 5350 4500 0    60   ~ 0
 GND
