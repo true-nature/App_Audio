@@ -1,4 +1,4 @@
-update=2016/04/19 22:01:42
+update=2016/04/25 21:22:19
 version=1
 last_client=kicad
 [pcbnew]
@@ -61,3 +61,13 @@ LibName29=valves
 LibName30=favorites
 LibName31=sensors
 LibName32=microphone
+[schematic_editor]
+version=1
+PageLayoutDescrFile=
+PlotDirectoryName=
+SubpartIdSeparator=0
+SubpartFirstId=65
+NetFmtName=
+SpiceForceRefPrefix=0
+SpiceUseNetNumbers=0
+LabSize=60
