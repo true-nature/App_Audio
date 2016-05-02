@@ -1,7 +1,7 @@
 (export (version D)
   (design
     (source C:/TWESDK/Wks_ToCoNet/App_Audio/KiCad/AppAudio.sch)
-    (date "2016/05/01 21:37:34")
+    (date "2016/05/02 11:45:09")
     (tool "Eeschema 4.0.2-stable")
     (sheet (number 1) (name /) (tstamps /)
       (title_block
@@ -193,7 +193,7 @@
       (tstamp 571A0BA2))
     (comp (ref D1)
       (value Led_x2)
-      (footprint LEDs:LED-5MM-3)
+      (footprint favorites:LED-3MM)
       (libsource (lib device) (part Led_x2))
       (sheetpath (names /) (tstamps /))
       (tstamp 571A26B8))
@@ -420,14 +420,14 @@
         (pin (num 5) (name GND) (type passive))
         (pin (num 6) (name CFG) (type passive)))))
   (libraries
-    (library (logical favorites)
-      (uri C:\TWESDK\Wks_ToCoNet\kicad-lib\library\favorites.lib))
     (library (logical device)
       (uri C:\TWESDK\Wks_ToCoNet\kicad-library\library\device.lib))
-    (library (logical linear)
-      (uri C:\TWESDK\Wks_ToCoNet\kicad-library\library\linear.lib))
+    (library (logical favorites)
+      (uri C:\TWESDK\Wks_ToCoNet\kicad-lib\library\favorites.lib))
     (library (logical microphone)
-      (uri C:\TWESDK\Wks_ToCoNet\kicad-lib\library\microphone.lib)))
+      (uri C:\TWESDK\Wks_ToCoNet\kicad-lib\library\microphone.lib))
+    (library (logical linear)
+      (uri C:\TWESDK\Wks_ToCoNet\kicad-library\library\linear.lib)))
   (nets
     (net (code 1) (name "Net-(SW2-Pad1)")
       (node (ref SW2) (pin 1))
