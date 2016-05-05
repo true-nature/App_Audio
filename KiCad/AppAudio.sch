@@ -74,7 +74,7 @@ U 1 1 57162E0D
 P 1450 2400
 F 0 "R1" V 1530 2400 50  0000 C CNN
 F 1 "10k" V 1450 2400 50  0000 C CNN
-F 2 "Resistors_ThroughHole:Resistor_Horizontal_RM10mm" V 1380 2400 50  0001 C CNN
+F 2 "Resistors_SMD:R_0603_HandSoldering" V 1380 2400 50  0001 C CNN
 F 3 "" H 1450 2400 50  0000 C CNN
 	1    1450 2400
 	1    0    0    -1  
@@ -107,7 +107,7 @@ U 1 1 57162EE2
 P 2100 2700
 F 0 "R2" V 2180 2700 50  0000 C CNN
 F 1 "10k" V 2100 2700 50  0000 C CNN
-F 2 "Resistors_ThroughHole:Resistor_Horizontal_RM10mm" V 2030 2700 50  0001 C CNN
+F 2 "Resistors_SMD:R_0603_HandSoldering" V 2030 2700 50  0001 C CNN
 F 3 "" H 2100 2700 50  0000 C CNN
 	1    2100 2700
 	0    1    1    0   
@@ -140,7 +140,7 @@ U 1 1 5716310E
 P 2100 3300
 F 0 "R3" V 2180 3300 50  0000 C CNN
 F 1 "1.5k" V 2100 3300 50  0000 C CNN
-F 2 "Resistors_ThroughHole:Resistor_Horizontal_RM10mm" V 2030 3300 50  0001 C CNN
+F 2 "Resistors_SMD:R_0603_HandSoldering" V 2030 3300 50  0001 C CNN
 F 3 "" H 2100 3300 50  0000 C CNN
 	1    2100 3300
 	1    0    0    -1  
@@ -184,7 +184,7 @@ U 1 1 5716329F
 P 2550 1950
 F 0 "R5" V 2630 1950 50  0000 C CNN
 F 1 "57k" V 2550 1950 50  0000 C CNN
-F 2 "Resistors_ThroughHole:Resistor_Horizontal_RM10mm" V 2480 1950 50  0001 C CNN
+F 2 "Resistors_SMD:R_0603_HandSoldering" V 2480 1950 50  0001 C CNN
 F 3 "" H 2550 1950 50  0000 C CNN
 	1    2550 1950
 	0    1    1    0   
@@ -217,7 +217,7 @@ U 1 1 571635E4
 P 3500 1950
 F 0 "R6" V 3580 1950 50  0000 C CNN
 F 1 "10k" V 3500 1950 50  0000 C CNN
-F 2 "Resistors_ThroughHole:Resistor_Horizontal_RM10mm" V 3430 1950 50  0001 C CNN
+F 2 "Resistors_SMD:R_0603_HandSoldering" V 3430 1950 50  0001 C CNN
 F 3 "" H 3500 1950 50  0000 C CNN
 	1    3500 1950
 	0    1    1    0   
@@ -250,7 +250,7 @@ U 1 1 571645C7
 P 6700 3100
 F 0 "R7" V 6780 3100 50  0000 C CNN
 F 1 "22k" V 6700 3100 50  0000 C CNN
-F 2 "Resistors_ThroughHole:Resistor_Horizontal_RM10mm" V 6630 3100 50  0001 C CNN
+F 2 "Resistors_SMD:R_0603_HandSoldering" V 6630 3100 50  0001 C CNN
 F 3 "" H 6700 3100 50  0000 C CNN
 	1    6700 3100
 	0    1    1    0   
@@ -261,7 +261,7 @@ U 1 1 571647E0
 P 7100 3100
 F 0 "R8" V 7180 3100 50  0000 C CNN
 F 1 "22k" V 7100 3100 50  0000 C CNN
-F 2 "Resistors_ThroughHole:Resistor_Horizontal_RM10mm" V 7030 3100 50  0001 C CNN
+F 2 "Resistors_SMD:R_0603_HandSoldering" V 7030 3100 50  0001 C CNN
 F 3 "" H 7100 3100 50  0000 C CNN
 	1    7100 3100
 	0    1    1    0   
@@ -371,7 +371,7 @@ U 1 1 5716980D
 P 3350 3700
 F 0 "SW1" H 3500 3810 50  0000 C CNN
 F 1 "SW_PUSH" H 3350 3620 50  0000 C CNN
-F 2 "favorites:JB-15HFBP2" H 3350 3700 50  0001 C CNN
+F 2 "favorites:TVGP01-G73BB" H 3350 3700 50  0001 C CNN
 F 3 "" H 3350 3700 50  0000 C CNN
 	1    3350 3700
 	0    -1   1    0   
@@ -404,10 +404,10 @@ U 1 1 571907BD
 P 10700 3250
 F 0 "SP1" H 10600 3500 50  0000 C CNN
 F 1 "SPEAKER" H 10600 3000 50  0000 C CNN
-F 2 "Pin_Headers:Pin_Header_Straight_1x02" H 10700 3250 50  0001 C CNN
+F 2 "favorites:B02B-XASK-1" H 10700 3250 50  0001 C CNN
 F 3 "" H 10700 3250 50  0000 C CNN
 	1    10700 3250
-	1    0    0    -1  
+	1    0    0    1   
 $EndComp
 $Comp
 L C C7
@@ -579,7 +579,7 @@ U 1 1 571AE44D
 P 7400 1300
 F 0 "BT1" H 7500 1350 50  0000 L CNN
 F 1 "Battery" H 7500 1250 50  0000 L CNN
-F 2 "Pin_Headers:Pin_Header_Straight_1x02" V 7400 1340 50  0000 C CNN
+F 2 "favorites:B02B-XASK-1" V 7400 1340 50  0000 C CNN
 F 3 "" V 7400 1340 50  0000 C CNN
 	1    7400 1300
 	1    0    0    -1  
@@ -700,7 +700,7 @@ U 1 1 5725EDAD
 P 3650 3950
 F 0 "SW2" H 3800 4060 50  0000 C CNN
 F 1 "SW_PUSH" H 3650 3870 50  0000 C CNN
-F 2 "favorites:DTS-6" H 3650 3950 50  0001 C CNN
+F 2 "favorites:JB-15HFBP2" H 3650 3950 50  0001 C CNN
 F 3 "" H 3650 3950 50  0000 C CNN
 	1    3650 3950
 	0    -1   1    0   
@@ -957,4 +957,12 @@ Wire Wire Line
 	3350 3250 3350 3400
 Wire Wire Line
 	3350 4550 3350 4000
+Text Label 10300 3150 0    60   ~ 0
+OUTN
+Text Label 10250 3250 0    60   ~ 0
+OUTP
+Text Label 8850 3200 0    60   ~ 0
+Aud_In
+Text Label 8900 3300 0    60   ~ 0
+VREF
 $EndSCHEMATC
