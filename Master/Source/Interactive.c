@@ -564,6 +564,7 @@ void vConfig_SetDefaults(tsFlashApp *p) {
 	p->u8parity = 0; // none
 
 	p->u32Opt = 0; // デフォルトの設定ビット (2x sample, sync)
+	p->u16SleepDur_ms = MODE4_SLEEP_DUR_ms;
 }
 
 

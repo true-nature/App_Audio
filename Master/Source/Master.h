@@ -121,6 +121,10 @@ typedef struct {
 	// DEBUG
 	uint8 u8DebugLevel; //!< デバッグ出力のレベル
 
+	// Wakeup
+	bool_t bWakeupByButton; //!< TRUE なら起床時に DI 割り込みにより起床した
+	uint32 u32SleepDur; //!< スリープ間隔 [ms]
+
 	// Network mode
 	uint8 u8AppLogicalId; //!< ネットワーク時の抽象アドレス 0:親機 1~:子機, 0xFF:通信しない
 

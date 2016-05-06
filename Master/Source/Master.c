@@ -79,6 +79,13 @@
 /***        Macro Definitions                                             ***/
 /****************************************************************************/
 
+//!< 最長アイドル時間
+#define MAX_IDLE_TIME_sec 10
+//!< 64FPSのイベント毎に行うアイドル状態カウントダウンの初期値
+#define IDLE_COUNT_RESET_VALUE (MAX_IDLE_TIME_sec * 64)
+//!< カソードコモンの2色LEDを使うのでHighで点灯
+#define POSITIVE_LOGIC_LED 1
+
 /****************************************************************************/
 /***        Type Definitions                                              ***/
 /****************************************************************************/
@@ -108,6 +115,8 @@ static void vInitCodecRaw();
 static void vInitCodecRaw8();
 static void vInitCodecIMA_ADPCM();
 
+static void vSleep(uint32 u32SleepDur_ms, bool_t bPeriodic, bool_t bDeep);
+
 /****************************************************************************/
 /***        Exported Variables                                            ***/
 /****************************************************************************/
@@ -132,6 +141,8 @@ tsDupChk_Context sDupChk; //!< 重複チェック(IO関連のデータ転送)  @
 tsImaAdpcmState sIMAadpcm_state_Enc; //!< ADPCM エンコーダーの状態ベクトル  @ingroup MASTER
 tsImaAdpcmState sIMAadpcm_state_Dec; //!< ADPCM デコーダーの状態ベクトル @ingroup MASTER
 
+uint32 sIdleCountDown;	//!< アイドル状態を監視するカウンター
+
 /****************************************************************************/
 /***        FUNCTIONS                                                     ***/
 /****************************************************************************/
@@ -154,15 +165,43 @@ static void vProcessEvCore(tsEvent *pEv, teEvent eEvent, uint32 u32evarg) {
 				vSerInitMessage();
 			}
 
-			/// オーディオ関連の初期化
 			// サンプルバッファーの登録
 			CodecPreBuffer_vInit();
-
 			// オーディオバッファの初期化
 			tsAM_Conf sAM_Conf;
 			memset(&sAM_Conf, 0, sizeof(sAM_Conf));
 			sAM_Conf.bInpLPF = IS_APPCONF_OPT_INPUT_LPF();
 			sAM_Conf.bOutLPF = IS_APPCONF_OPT_OUTPUT_LPF();
+
+			if (sAppData.bWakeupByButton || IS_LOGICAL_ID_PARENT(au8IoModeTbl_To_LogicalID[sAppData.u8Mode])) {
+				sIdleCountDown = IDLE_COUNT_RESET_VALUE;
+				ToCoNet_Event_SetState(pEv, E_STATE_RUNNING);
+			} else {
+				sIdleCountDown = 2;
+			}
+		} else if (eEvent == E_EVENT_APP_TICK_A) {
+			// アイドル状態の監視
+			if (sIdleCountDown > 2) {
+				/// RUNNING 状態へ遷移
+				ToCoNet_Event_SetState(pEv, E_STATE_RUNNING);
+			}
+			else if (sIdleCountDown > 0) {
+				sIdleCountDown--;
+			} else {
+				// 停止
+				vAM_StartStopSampling(FALSE);
+				/// SLEEP 状態へ遷移
+				ToCoNet_Event_SetState(pEv, E_STATE_FINISHED);
+			}
+		}
+		break;
+
+	case E_STATE_RUNNING:
+		if (eEvent == E_EVENT_NEW_STATE) {
+			// OPAMPの電源を投入
+			vPortSetHi(PORT_OUT4);
+
+			/// オーディオ関連の初期化
 
 			// CODEC & AM
 			switch (sAppData.sFlash.sData.u8codec) {
@@ -193,15 +232,50 @@ static void vProcessEvCore(tsEvent *pEv, teEvent eEvent, uint32 u32evarg) {
 
 			// 開始
 			vAM_StartStopSampling(TRUE);
-
-			/// RUNNING 状態へ遷移
-			ToCoNet_Event_SetState(pEv, E_STATE_RUNNING);
+		} else if (eEvent == E_EVENT_APP_TICK_A) {
+			// 親機(設定モード)はスリープしない。子機はアイドル時に強制スリープ。
+			if (IS_LOGICAL_ID_CHILD(au8IoModeTbl_To_LogicalID[sAppData.u8Mode])) {
+				// アイドル状態の監視
+				if (sIdleCountDown > 0) {
+					sIdleCountDown--;
+				} else {
+					// 停止
+					vAM_StartStopSampling(FALSE);
+					/// SLEEP 状態へ遷移
+					ToCoNet_Event_SetState(pEv, E_STATE_FINISHED);
+				}
+			}
 		}
 
 		break;
 
-	case E_STATE_RUNNING:
+	case E_STATE_FINISHED:
+		_C {
+			if (eEvent == E_EVENT_NEW_STATE) {
+				vfPrintf(&sSerStream, "!INF SLEEP %dms @%dms."LB,
+						sAppData.u32SleepDur, u32TickCount_ms);
+				SERIAL_vFlush(sSerStream.u8Device);
+#ifdef POSITIVE_LOGIC_LED
+				vPortSetLo(PORT_OUT1);
+				vPortSetLo(PORT_OUT2);
+#else
+				vPortSetHi(PORT_OUT1);
+				vPortSetHi(PORT_OUT2);
+#endif
+				// OPAMPの電源を遮断
+				vPortSetLo(PORT_OUT4);
+				pEv->bKeepStateOnSetAll = FALSE;
+				ToCoNet_Event_SetState(pEv, E_STATE_APP_SLEEPING);
+			}
+		}
 		break;
+
+	case E_STATE_APP_SLEEPING:
+		if (eEvent == E_EVENT_NEW_STATE) {
+			vSleep(sAppData.u32SleepDur, TRUE, FALSE);
+		}
+		break;
+
 	default:
 		break;
 	}
@@ -355,6 +429,15 @@ void cbAppColdStart(bool_t bStart) {
 		sToCoNet_AppContext.u16ShortAddress =
 				SERCMD_ADDR_CONV_TO_SHORT_ADDR(sAppData.u8AppLogicalId);
 
+		// 間欠動作のスリープ時間
+		if (!sAppData.u32SleepDur) {
+			if (sAppData.bFlashLoaded) {
+				sAppData.u32SleepDur = sAppData.sFlash.sData.u16SleepDur_ms;
+			} else {
+				sAppData.u32SleepDur = MODE4_SLEEP_DUR_ms;
+			}
+		}
+
 		// UART の初期化
 		ToCoNet_vDebugInit(&sSerStream);
 		ToCoNet_vDebugLevel(0);
@@ -392,7 +475,7 @@ void cbAppWarmStart(bool_t bStart) {
 		// before AHI init, very first of code.
 		//  to check interrupt source, etc.
 
-#if 0
+#if 1
 		sAppData.bWakeupByButton = FALSE;
 		if (u8AHI_WakeTimerFiredStatus()) {
 			;
@@ -947,6 +1030,7 @@ static void vReceiveAudioData(tsRxDataApp *pRx) {
 	}
 
 	// 以下オーディオデータ
+	sIdleCountDown = IDLE_COUNT_RESET_VALUE;	// アイドル監視タイマーをリセット
 	if (sAppData.bPktMon) {
 		// 直前のパケットと比較して連続しているかチェック
 		static uint16 u16SeqPrev = 0xFFFF;
@@ -1064,6 +1148,7 @@ static void vProcessAudio() {
 		q += u16len_coded;
 
 		if ((bmPorts & (1UL << PORT_INPUT1)) || sAppData.bTestMode) {
+			sIdleCountDown = IDLE_COUNT_RESET_VALUE;	// アイドル監視タイマーをリセット
 			i16TransmitAudioData(au8buf, q - au8buf);
 			if(sAppData.bPktMon) {
 				S_PUTCHAR('.');
@@ -1096,6 +1181,30 @@ static void vProcessAudio() {
 	// LED の点灯
 	vPortSet_TrueAsLo(PORT_OUT1, (u8FreeBlk != 2)); // 出力データが有る時は LED 点灯
 	vPortSet_TrueAsLo(PORT_OUT2, bTestTone); // 出力データが有る時は LED 点灯
+}
+
+/** @ingroup MASTER
+ * スリープ状態に遷移します。
+ *
+ * @param u32SleepDur_ms スリープ時間[ms]
+ * @param bPeriodic TRUE:前回の起床時間から次のウェイクアップタイミングを計る
+ * @param bDeep TRUE:RAM OFF スリープ
+ */
+static void vSleep(uint32 u32SleepDur_ms, bool_t bPeriodic, bool_t bDeep) {
+	// print message.
+
+	// stop interrupt source, if interrupt source is still running.
+	vAHI_DioInterruptEnable(0, PORT_INPUT_MASK); // 割り込みの解除）
+
+	// set UART Rx port as interrupt source
+	vAHI_DioSetDirection(PORT_INPUT_MASK, 0); // set as input
+
+	(void) u32AHI_DioInterruptStatus(); // clear interrupt register
+	vAHI_DioWakeEnable(PORT_INPUT_MASK, 0); // also use as DIO WAKE SOURCE
+	vAHI_DioWakeEdge(0, PORT_INPUT_MASK); // 割り込みエッジ（立下がりに設定）
+
+	// wake up using wakeup timer as well.
+	ToCoNet_vSleep(E_AHI_WAKE_TIMER_0, u32SleepDur_ms, bPeriodic, bDeep); // PERIODIC RAM OFF SLEEP USING WK0
 }
 
 /****************************************************************************/

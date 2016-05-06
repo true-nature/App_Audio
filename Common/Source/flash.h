@@ -58,6 +58,7 @@ typedef struct _tsFlashApp {
 	uint8 u8codec;			//!< CODEC の種類
 
 	uint32 u32Opt;			//!< 色々オプション
+	uint16 u16SleepDur_ms;	//!< スリープ期間[ms]
 } tsFlashApp;
 
 /** @ingroup FLASH
