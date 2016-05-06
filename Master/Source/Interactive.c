@@ -200,6 +200,12 @@ void vProcessInputByte(uint8 u8Byte) {
 				E_APPCONF_TX_POWER);
 		break;
 
+	case 't': // set sleep duration
+		V_PRINT("Input sleep dur[ms] (DEC:100-10000): ");
+		INPSTR_vStart(&sSerInpStr, E_INPUTSTRING_DATATYPE_DEC, 5,
+				E_APPCONF_SLEEP4);
+		break;
+
 	case 'p': // PWMの駆動周波数の変更
 		V_PRINT("Input PWM Hz (DEC:1-64000): ");
 		INPSTR_vStart(&sSerInpStr, E_INPUTSTRING_DATATYPE_DEC, 6,
@@ -434,6 +440,19 @@ void vProcessInputString(tsInpStr_Context *pContext) {
 		}
 		break;
 
+	case E_APPCONF_SLEEP4:
+		_C {
+			uint32 u32val = u32string2dec(pu8str, u8idx);
+			V_PRINT(LB"-> ");
+			if (u32val >= 100 && u32val <= 65534) {
+				sAppData.sConfig_UnSaved.u16SleepDur_ms = u32val;
+				V_PRINT("%d"LB, u32val);
+			} else {
+				V_PRINT("(ignored)"LB);
+			}
+		}
+		break;
+
 	case E_APPCONF_PWM_HZ:
 		_C {
 			uint32 u32val = u32string2dec(pu8str, u8idx);
@@ -555,6 +574,7 @@ void vConfig_SetDefaults(tsFlashApp *p) {
 	p->u8pow = 3;
 
 	p->u8id = 0;
+	p->u16SleepDur_ms = MODE4_SLEEP_DUR_ms;
 
 	p->u32PWM_Hz = AUDIO_DEV_PWM_FREQ;
 	p->u16Samp_Hz = AUDIO_DEV_SAMPLE_FREQ;
@@ -564,7 +584,6 @@ void vConfig_SetDefaults(tsFlashApp *p) {
 	p->u8parity = 0; // none
 
 	p->u32Opt = 0; // デフォルトの設定ビット (2x sample, sync)
-	p->u16SleepDur_ms = MODE4_SLEEP_DUR_ms;
 }
 
 
@@ -619,6 +638,9 @@ void vConfig_SaveAndReset() {
 	}
 	if (sAppData.sConfig_UnSaved.u8pow != 0xFF) {
 		sFlash.sData.u8pow = sAppData.sConfig_UnSaved.u8pow;
+	}
+	if (sAppData.sConfig_UnSaved.u16SleepDur_ms != 0xFFFF) {
+		sFlash.sData.u16SleepDur_ms = sAppData.sConfig_UnSaved.u16SleepDur_ms;
 	}
 	if (sAppData.sConfig_UnSaved.u8codec != 0xFF) {
 		sFlash.sData.u8codec = sAppData.sConfig_UnSaved.u8codec;
@@ -714,6 +736,10 @@ void vSerUpdateScreen() {
 	V_PRINT(" x: set Tx Power (%d)%c" LB,
 			FL_IS_MODIFIED_u8(pow) ? FL_UNSAVE_u8(pow) : FL_MASTER_u8(pow),
 			FL_IS_MODIFIED_u8(pow) ? '*' : ' ');
+
+	V_PRINT(" t: set mode4 sleep dur (%dms)%c" LB,
+			FL_IS_MODIFIED_u16(SleepDur_ms) ? FL_UNSAVE_u16(SleepDur_ms) : FL_MASTER_u16(SleepDur_ms),
+			FL_IS_MODIFIED_u16(SleepDur_ms) ? '*' : ' ');
 
 	V_PRINT(" p: set PWM HZ (%d)%c" LB,
 			FL_IS_MODIFIED_u32(PWM_Hz) ? FL_UNSAVE_u32(PWM_Hz) : FL_MASTER_u32(PWM_Hz),

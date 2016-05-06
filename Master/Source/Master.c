@@ -80,7 +80,7 @@
 /****************************************************************************/
 
 //!< 最長アイドル時間
-#define MAX_IDLE_TIME_sec 10
+#define MAX_IDLE_TIME_sec 5
 //!< 64FPSのイベント毎に行うアイドル状態カウントダウンの初期値
 #define IDLE_COUNT_RESET_VALUE (MAX_IDLE_TIME_sec * 64)
 //!< カソードコモンの2色LEDを使うのでHighで点灯
@@ -156,6 +156,7 @@ uint32 sIdleCountDown;	//!< アイドル状態を監視するカウンター
  * @param u32evarg
  */
 static void vProcessEvCore(tsEvent *pEv, teEvent eEvent, uint32 u32evarg) {
+//	vfPrintf(&sSerStream, "S %08x E %04x."LB, pEv->eState, eEvent);
 	switch (pEv->eState) {
 	case E_STATE_IDLE:
 		if (eEvent == E_EVENT_START_UP) {
@@ -165,6 +166,8 @@ static void vProcessEvCore(tsEvent *pEv, teEvent eEvent, uint32 u32evarg) {
 				vSerInitMessage();
 			}
 
+			/// オーディオ関連の初期化
+			vAM_StartStopSampling(FALSE);
 			// サンプルバッファーの登録
 			CodecPreBuffer_vInit();
 			// オーディオバッファの初期化
@@ -172,37 +175,6 @@ static void vProcessEvCore(tsEvent *pEv, teEvent eEvent, uint32 u32evarg) {
 			memset(&sAM_Conf, 0, sizeof(sAM_Conf));
 			sAM_Conf.bInpLPF = IS_APPCONF_OPT_INPUT_LPF();
 			sAM_Conf.bOutLPF = IS_APPCONF_OPT_OUTPUT_LPF();
-
-			if (sAppData.bWakeupByButton || IS_LOGICAL_ID_PARENT(au8IoModeTbl_To_LogicalID[sAppData.u8Mode])) {
-				sIdleCountDown = IDLE_COUNT_RESET_VALUE;
-				ToCoNet_Event_SetState(pEv, E_STATE_RUNNING);
-			} else {
-				sIdleCountDown = 2;
-			}
-		} else if (eEvent == E_EVENT_APP_TICK_A) {
-			// アイドル状態の監視
-			if (sIdleCountDown > 2) {
-				/// RUNNING 状態へ遷移
-				ToCoNet_Event_SetState(pEv, E_STATE_RUNNING);
-			}
-			else if (sIdleCountDown > 0) {
-				sIdleCountDown--;
-			} else {
-				// 停止
-				vAM_StartStopSampling(FALSE);
-				/// SLEEP 状態へ遷移
-				ToCoNet_Event_SetState(pEv, E_STATE_FINISHED);
-			}
-		}
-		break;
-
-	case E_STATE_RUNNING:
-		if (eEvent == E_EVENT_NEW_STATE) {
-			// OPAMPの電源を投入
-			vPortSetHi(PORT_OUT4);
-
-			/// オーディオ関連の初期化
-
 			// CODEC & AM
 			switch (sAppData.sFlash.sData.u8codec) {
 			case 0:
@@ -219,6 +191,38 @@ static void vProcessEvCore(tsEvent *pEv, teEvent eEvent, uint32 u32evarg) {
 				break;
 			}
 			vAM_Init(&sAM_Conf);
+
+			if (sAppData.bWakeupByButton || IS_LOGICAL_ID_PARENT(au8IoModeTbl_To_LogicalID[sAppData.u8Mode])) {
+				sIdleCountDown = IDLE_COUNT_RESET_VALUE;
+				ToCoNet_Event_SetState(pEv, E_STATE_RUNNING);
+			} else {
+				sIdleCountDown = 2;
+				ToCoNet_Event_SetState(pEv, E_STATE_INITIAL_LISTEN);
+			}
+		}
+		break;
+	case E_STATE_INITIAL_LISTEN:
+		if (eEvent == E_EVENT_APP_TICK_A) {
+			// アイドル状態の監視
+			if (sIdleCountDown > 2) {
+				/// RUNNING 状態へ遷移
+				ToCoNet_Event_SetState(pEv, E_STATE_RUNNING);
+			}
+			else if (sIdleCountDown > 0) {
+				sIdleCountDown--;
+			} else {
+				// 停止
+				/// SLEEP 状態へ遷移
+				ToCoNet_Event_SetState(pEv, E_STATE_FINISHED);
+			}
+		}
+		break;
+
+	case E_STATE_RUNNING:
+		if (eEvent == E_EVENT_NEW_STATE) {
+			// OPAMPの電源を投入
+			vPortSetLo(PORT_OUT3);
+			vPortSetHi(PORT_OUT4);
 
 			// オーディオデバイス (ADC/PWM の初期化)
 			tsAD_Conf sAD_Conf;
@@ -263,6 +267,7 @@ static void vProcessEvCore(tsEvent *pEv, teEvent eEvent, uint32 u32evarg) {
 				vPortSetHi(PORT_OUT2);
 #endif
 				// OPAMPの電源を遮断
+				vPortSetHi(PORT_OUT3);
 				vPortSetLo(PORT_OUT4);
 				pEv->bKeepStateOnSetAll = FALSE;
 				ToCoNet_Event_SetState(pEv, E_STATE_APP_SLEEPING);
@@ -445,6 +450,18 @@ void cbAppColdStart(bool_t bStart) {
 		// その他の初期化
 		DUPCHK_vInit(&sDupChk); // 重複チェック用
 
+		// LED消灯
+#ifdef POSITIVE_LOGIC_LED
+		vPortSetLo(PORT_OUT1);
+		vPortSetLo(PORT_OUT2);
+#else
+		vPortSetHi(PORT_OUT1);
+		vPortSetHi(PORT_OUT2);
+#endif
+		// OPAMPの電源を遮断
+		vPortSetHi(PORT_OUT3);
+		vPortSetLo(PORT_OUT4);
+
 		sAppData.bPktMon = TRUE;
 
 		// MAC の初期化
@@ -487,7 +504,7 @@ void cbAppWarmStart(bool_t bStart) {
 		}
 #endif
 	} else {
-		cbAppColdStart(bStart); // 実際には呼ばれない
+		cbAppColdStart(bStart);
 	}
 }
 
@@ -608,7 +625,7 @@ void cbToCoNet_vHwEvent(uint32 u32DeviceId, uint32 u32ItemBitmap) {
 		}
 
 		// イベント処理部分にイベントを送信
-		ToCoNet_Event_Process(E_EVENT_APP_TICK_A, 0, (void*)vProcessEvCoreSub);
+		ToCoNet_Event_Process(E_EVENT_APP_TICK_A, 0, (void*)vProcessEvCore);
 
 		// シリアル画面制御のためのカウンタ
 		if (!(--u16HoldUpdateScreen)) {
@@ -682,10 +699,14 @@ static void vInitHardware(int f_warm_start) {
 
 	// 出力の設定
 	{
-		for (i = 0; i < 4; i++) {
-			vPortSetHi(au8PortTbl_DOut[i]);
-			vPortAsOutput(au8PortTbl_DOut[i]);
-		}
+		vPortSetLo(PORT_OUT1);
+		vPortAsOutput(PORT_OUT1);
+		vPortSetLo(PORT_OUT2);
+		vPortAsOutput(PORT_OUT2);
+		vPortSetHi(PORT_OUT3);
+		vPortAsOutput(PORT_OUT3);
+		vPortSetLo(PORT_OUT4);
+		vPortAsOutput(PORT_OUT4);
 	}
 
 	// 入力の設定
@@ -1179,8 +1200,13 @@ static void vProcessAudio() {
 	}
 
 	// LED の点灯
+#ifdef POSITIVE_LOGIC_LED
+	vPortSet_TrueAsLo(PORT_OUT1, !(u8FreeBlk != 2)); // 出力データが有る時は LED 点灯
+	vPortSet_TrueAsLo(PORT_OUT2, !bTestTone); // 出力データが有る時は LED 点灯
+#else
 	vPortSet_TrueAsLo(PORT_OUT1, (u8FreeBlk != 2)); // 出力データが有る時は LED 点灯
 	vPortSet_TrueAsLo(PORT_OUT2, bTestTone); // 出力データが有る時は LED 点灯
+#endif
 }
 
 /** @ingroup MASTER
