@@ -1,7 +1,7 @@
 (export (version D)
   (design
     (source C:/TWESDK/Wks_ToCoNet/App_Audio/KiCad/AppAudio.sch)
-    (date "2016/05/05 20:40:45")
+    (date "2016/05/06 10:48:32")
     (tool "Eeschema 4.0.2-stable")
     (sheet (number 1) (name /) (tstamps /)
       (title_block
@@ -211,7 +211,7 @@
       (tstamp 571AE44D))
     (comp (ref SW2)
       (value SW_PUSH)
-      (footprint favorites:JB-15HFBP2)
+      (footprint favorites:TVGP01-G73BB)
       (libsource (lib device) (part SW_PUSH))
       (sheetpath (names /) (tstamps /))
       (tstamp 5725EDAD)))
@@ -422,12 +422,12 @@
   (libraries
     (library (logical device)
       (uri C:\TWESDK\Wks_ToCoNet\kicad-library\library\device.lib))
+    (library (logical favorites)
+      (uri C:\TWESDK\Wks_ToCoNet\kicad-lib\library\favorites.lib))
     (library (logical microphone)
       (uri C:\TWESDK\Wks_ToCoNet\kicad-lib\library\microphone.lib))
     (library (logical linear)
-      (uri C:\TWESDK\Wks_ToCoNet\kicad-library\library\linear.lib))
-    (library (logical favorites)
-      (uri C:\TWESDK\Wks_ToCoNet\kicad-lib\library\favorites.lib)))
+      (uri C:\TWESDK\Wks_ToCoNet\kicad-library\library\linear.lib)))
   (nets
     (net (code 1) (name "Net-(Q1-Pad2)")
       (node (ref R11) (pin 1))
