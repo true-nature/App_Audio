@@ -326,8 +326,8 @@ L R R9
 U 1 1 571683E8
 P 8350 3200
 F 0 "R9" V 8430 3200 50  0000 C CNN
-F 1 "100" V 8350 3200 50  0000 C CNN
-F 2 "Resistors_ThroughHole:Resistor_Horizontal_RM10mm" V 8280 3200 50  0001 C CNN
+F 1 "22k" V 8350 3200 50  0000 C CNN
+F 2 "Resistors_SMD:R_0603_HandSoldering" V 8280 3200 50  0001 C CNN
 F 3 "" H 8350 3200 50  0000 C CNN
 	1    8350 3200
 	0    1    1    0   
@@ -527,7 +527,7 @@ L Led_x2 D1
 U 1 1 571A26B8
 P 6250 2350
 F 0 "D1" H 6250 2575 50  0000 C CNN
-F 1 "Led_x2" H 6250 2100 50  0000 C CNN
+F 1 "Led_x2" H 6000 2550 50  0000 C CNN
 F 2 "favorites:LED-3MM" H 6250 2350 50  0001 C CNN
 F 3 "" H 6250 2350 50  0000 C CNN
 	1    6250 2350
@@ -745,9 +745,7 @@ Wire Wire Line
 Wire Wire Line
 	6100 4900 6100 5100
 Wire Wire Line
-	6100 2650 6100 4600
-Wire Wire Line
-	5750 2650 6100 2650
+	6100 2550 6100 4600
 Wire Wire Line
 	4950 4200 4950 4600
 Wire Wire Line
@@ -853,9 +851,7 @@ Wire Wire Line
 Wire Wire Line
 	3300 1950 3350 1950
 Wire Wire Line
-	3150 2100 3150 2800
-Wire Wire Line
-	3000 2800 4250 2800
+	3150 2100 3150 3000
 Wire Wire Line
 	3650 1950 3700 1950
 Connection ~ 3150 2800
@@ -949,13 +945,9 @@ Wire Wire Line
 	6350 3600 7300 3600
 Connection ~ 7300 3600
 Wire Wire Line
-	5750 2550 5950 2550
+	5750 2550 6100 2550
 Wire Wire Line
-	5950 2550 5950 2900
-Wire Wire Line
-	5950 2900 6200 2900
-Wire Wire Line
-	6200 2900 6200 3700
+	6200 2650 6200 3700
 Wire Wire Line
 	6200 3700 6950 3700
 Wire Wire Line
@@ -967,7 +959,7 @@ Wire Wire Line
 Wire Wire Line
 	8500 3500 9050 3500
 Text Label 7650 4100 0    60   ~ 0
-DO3
+DO4
 $Comp
 L VCC #PWR023
 U 1 1 572D38F0
@@ -984,9 +976,15 @@ Wire Wire Line
 Wire Wire Line
 	3700 2900 4250 2900
 Wire Wire Line
-	3700 3000 4250 3000
+	3150 2800 3000 2800
 Connection ~ 3700 2900
 Wire Wire Line
 	3700 3100 4250 3100
-Connection ~ 3700 3000
+Wire Wire Line
+	3150 3000 4250 3000
+Wire Wire Line
+	4250 2800 3700 2800
+Connection ~ 3700 2800
+Wire Wire Line
+	5750 2650 6200 2650
 $EndSCHEMATC

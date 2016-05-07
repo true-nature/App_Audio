@@ -156,7 +156,6 @@ uint32 sIdleCountDown;	//!< アイドル状態を監視するカウンター
  * @param u32evarg
  */
 static void vProcessEvCore(tsEvent *pEv, teEvent eEvent, uint32 u32evarg) {
-//	vfPrintf(&sSerStream, "S %08x E %04x."LB, pEv->eState, eEvent);
 	switch (pEv->eState) {
 	case E_STATE_IDLE:
 		if (eEvent == E_EVENT_START_UP) {
@@ -196,7 +195,7 @@ static void vProcessEvCore(tsEvent *pEv, teEvent eEvent, uint32 u32evarg) {
 				sIdleCountDown = IDLE_COUNT_RESET_VALUE;
 				ToCoNet_Event_SetState(pEv, E_STATE_RUNNING);
 			} else {
-				sIdleCountDown = 2;
+				sIdleCountDown = 1;
 				ToCoNet_Event_SetState(pEv, E_STATE_INITIAL_LISTEN);
 			}
 		}
@@ -204,7 +203,7 @@ static void vProcessEvCore(tsEvent *pEv, teEvent eEvent, uint32 u32evarg) {
 	case E_STATE_INITIAL_LISTEN:
 		if (eEvent == E_EVENT_APP_TICK_A) {
 			// アイドル状態の監視
-			if (sIdleCountDown > 2) {
+			if (sIdleCountDown > 1) {
 				/// RUNNING 状態へ遷移
 				ToCoNet_Event_SetState(pEv, E_STATE_RUNNING);
 			}
@@ -221,8 +220,8 @@ static void vProcessEvCore(tsEvent *pEv, teEvent eEvent, uint32 u32evarg) {
 	case E_STATE_RUNNING:
 		if (eEvent == E_EVENT_NEW_STATE) {
 			// OPAMPの電源を投入
-			vPortSetLo(PORT_OUT3);
-			vPortSetHi(PORT_OUT4);
+			vPortSetHi(PORT_OUT3);
+			vPortSetLo(PORT_OUT4);
 
 			// オーディオデバイス (ADC/PWM の初期化)
 			tsAD_Conf sAD_Conf;
@@ -267,8 +266,8 @@ static void vProcessEvCore(tsEvent *pEv, teEvent eEvent, uint32 u32evarg) {
 				vPortSetHi(PORT_OUT2);
 #endif
 				// OPAMPの電源を遮断
-				vPortSetHi(PORT_OUT3);
-				vPortSetLo(PORT_OUT4);
+				vPortSetLo(PORT_OUT3);
+				vPortSetHi(PORT_OUT4);
 				pEv->bKeepStateOnSetAll = FALSE;
 				ToCoNet_Event_SetState(pEv, E_STATE_APP_SLEEPING);
 			}
@@ -459,15 +458,15 @@ void cbAppColdStart(bool_t bStart) {
 		vPortSetHi(PORT_OUT2);
 #endif
 		// OPAMPの電源を遮断
-		vPortSetHi(PORT_OUT3);
-		vPortSetLo(PORT_OUT4);
+		vPortSetLo(PORT_OUT3);
+		vPortSetHi(PORT_OUT4);
 
 		sAppData.bPktMon = TRUE;
 
+		sToCoNet_AppContext.bRxOnIdle = TRUE;
+
 		// MAC の初期化
 		ToCoNet_vMacStart();
-
-		sToCoNet_AppContext.bRxOnIdle = TRUE;
 
 		// 主状態遷移マシンの登録
 		ToCoNet_Event_Register_State_Machine(vProcessEvCore);
@@ -491,8 +490,6 @@ void cbAppWarmStart(bool_t bStart) {
 	if (!bStart) {
 		// before AHI init, very first of code.
 		//  to check interrupt source, etc.
-
-#if 1
 		sAppData.bWakeupByButton = FALSE;
 		if (u8AHI_WakeTimerFiredStatus()) {
 			;
@@ -502,9 +499,30 @@ void cbAppWarmStart(bool_t bStart) {
 			// woke up from DIO events
 			sAppData.bWakeupByButton = TRUE;
 		}
-#endif
 	} else {
-		cbAppColdStart(bStart);
+		vInitHardware(TRUE);
+
+		// UART の初期化
+		ToCoNet_vDebugInit(&sSerStream);
+		ToCoNet_vDebugLevel(0);
+
+		// その他の初期化
+		DUPCHK_vInit(&sDupChk);
+		sToCoNet_AppContext.bRxOnIdle = TRUE;
+		// LED消灯
+#ifdef POSITIVE_LOGIC_LED
+		vPortSetLo(PORT_OUT1);
+		vPortSetLo(PORT_OUT2);
+#else
+		vPortSetHi(PORT_OUT1);
+		vPortSetHi(PORT_OUT2);
+#endif
+		// OPAMPの電源を遮断
+		vPortSetLo(PORT_OUT3);
+		vPortSetHi(PORT_OUT4);
+
+		// MAC の開始
+		ToCoNet_vMacStart();
 	}
 }
 
@@ -703,9 +721,11 @@ static void vInitHardware(int f_warm_start) {
 		vPortAsOutput(PORT_OUT1);
 		vPortSetLo(PORT_OUT2);
 		vPortAsOutput(PORT_OUT2);
-		vPortSetHi(PORT_OUT3);
+		// OPAMPの電源を切る
+		vPortSetLo(PORT_OUT3);
 		vPortAsOutput(PORT_OUT3);
-		vPortSetLo(PORT_OUT4);
+		// CE#をdisableにする
+		vPortSetHi(PORT_OUT4);
 		vPortAsOutput(PORT_OUT4);
 	}
 
@@ -1168,7 +1188,7 @@ static void vProcessAudio() {
 		uint16 u16len_coded = CODEC_u16Encode(sAppData.sEncode, pi16SamplePacket, q, u16AM_GetSampleBufferSize());
 		q += u16len_coded;
 
-		if ((bmPorts & (1UL << PORT_INPUT1)) || sAppData.bTestMode) {
+		if ((bmPorts & ((1UL << PORT_INPUT1) | (1UL << PORT_INPUT2))) || sAppData.bTestMode) {
 			sIdleCountDown = IDLE_COUNT_RESET_VALUE;	// アイドル監視タイマーをリセット
 			i16TransmitAudioData(au8buf, q - au8buf);
 			if(sAppData.bPktMon) {
@@ -1202,10 +1222,10 @@ static void vProcessAudio() {
 	// LED の点灯
 #ifdef POSITIVE_LOGIC_LED
 	vPortSet_TrueAsLo(PORT_OUT1, !(u8FreeBlk != 2)); // 出力データが有る時は LED 点灯
-	vPortSet_TrueAsLo(PORT_OUT2, !bTestTone); // 出力データが有る時は LED 点灯
+	vPortSet_TrueAsLo(PORT_OUT2, !bTestTone); // テストトーン出力時は LED 点灯
 #else
 	vPortSet_TrueAsLo(PORT_OUT1, (u8FreeBlk != 2)); // 出力データが有る時は LED 点灯
-	vPortSet_TrueAsLo(PORT_OUT2, bTestTone); // 出力データが有る時は LED 点灯
+	vPortSet_TrueAsLo(PORT_OUT2, bTestTone); // テストトーン出力時は LED 点灯
 #endif
 }
 
