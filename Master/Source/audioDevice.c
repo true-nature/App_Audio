@@ -135,7 +135,7 @@ void vAD_Init(tsAD_Conf *pConf) {
 	vAHI_AdcEnable(
 			E_AHI_ADC_CONTINUOUS,   // 連続モード（値の読み出しはサンプリング周期のタイマー割り込み）
 			E_AHI_AP_INPUT_RANGE_2, // 0-2.4V まで
-			E_AHI_ADC_SRC_ADC_1);   // ADC1
+			E_AHI_ADC_SRC_ADC_2);   // SMDでパターンを引きやすいADC2
 
 	vAHI_AdcStartSample();  // 開始！
 }
