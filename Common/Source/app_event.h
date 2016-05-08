@@ -41,7 +41,7 @@ typedef enum
 	E_STATE_APP_BASE = ToCoNet_STATE_APP_BASE,//!< ToCoNet 組み込み状態と重複させないため
 	E_STATE_APP_WAIT_IO_FIRST_CAPTURE,        //!< 最初のADCやDIの状態確定を待つ
 	E_STATE_APP_SET_INITIAL_ON,               //!< 起動時に全ポートをONにする
-	E_STATE_INITIAL_LISTEN,
+//	E_STATE_INITIAL_LISTEN,
 	E_STATE_APP_SLEEPING                      //!< スリープ処理
 } teStateApp;
 

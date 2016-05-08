@@ -79,6 +79,8 @@
 /***        Macro Definitions                                             ***/
 /****************************************************************************/
 
+//!< 起床アイドルカウンタ初期値 (64FPS)
+#define WAKEUP_DURATION_COUNT 2
 //!< 最長アイドル時間
 #define MAX_IDLE_TIME_sec 5
 //!< 64FPSのイベント毎に行うアイドル状態カウントダウンの初期値
@@ -141,7 +143,7 @@ tsDupChk_Context sDupChk; //!< 重複チェック(IO関連のデータ転送)  @
 tsImaAdpcmState sIMAadpcm_state_Enc; //!< ADPCM エンコーダーの状態ベクトル  @ingroup MASTER
 tsImaAdpcmState sIMAadpcm_state_Dec; //!< ADPCM デコーダーの状態ベクトル @ingroup MASTER
 
-uint32 sIdleCountDown;	//!< アイドル状態を監視するカウンター
+uint16 sIdleCountDown;	//!< アイドル状態を監視するカウンター
 
 /****************************************************************************/
 /***        FUNCTIONS                                                     ***/
@@ -195,24 +197,21 @@ static void vProcessEvCore(tsEvent *pEv, teEvent eEvent, uint32 u32evarg) {
 				sIdleCountDown = IDLE_COUNT_RESET_VALUE;
 				ToCoNet_Event_SetState(pEv, E_STATE_RUNNING);
 			} else {
-				sIdleCountDown = 1;
-				ToCoNet_Event_SetState(pEv, E_STATE_INITIAL_LISTEN);
+				sIdleCountDown = WAKEUP_DURATION_COUNT;
 			}
 		}
-		break;
-	case E_STATE_INITIAL_LISTEN:
-		if (eEvent == E_EVENT_APP_TICK_A) {
+		else if (eEvent == E_EVENT_APP_TICK_A) {
 			// アイドル状態の監視
-			if (sIdleCountDown > 1) {
+			if (sIdleCountDown > WAKEUP_DURATION_COUNT) {
 				/// RUNNING 状態へ遷移
 				ToCoNet_Event_SetState(pEv, E_STATE_RUNNING);
 			}
 			else if (sIdleCountDown > 0) {
 				sIdleCountDown--;
-			} else {
-				// 停止
-				/// SLEEP 状態へ遷移
-				ToCoNet_Event_SetState(pEv, E_STATE_FINISHED);
+				if (sIdleCountDown == 0) {
+					/// SLEEP 状態へ遷移
+					ToCoNet_Event_SetState(pEv, E_STATE_FINISHED);
+				}
 			}
 		}
 		break;
@@ -1221,11 +1220,11 @@ static void vProcessAudio() {
 
 	// LED の点灯
 #ifdef POSITIVE_LOGIC_LED
-	vPortSet_TrueAsLo(PORT_OUT1, !(u8FreeBlk != 2)); // 出力データが有る時は LED 点灯
-	vPortSet_TrueAsLo(PORT_OUT2, !bTestTone); // テストトーン出力時は LED 点灯
+	vPortSet_TrueAsLo(PORT_OUT1, !(bmPorts & ((1UL << PORT_INPUT1) | (1UL << PORT_INPUT2)))); // 送信ボタン押下時は LED 点灯
+	vPortSet_TrueAsLo(PORT_OUT2, !(u8FreeBlk != 2)); // 出力データが有る時は LED 点灯
 #else
-	vPortSet_TrueAsLo(PORT_OUT1, (u8FreeBlk != 2)); // 出力データが有る時は LED 点灯
-	vPortSet_TrueAsLo(PORT_OUT2, bTestTone); // テストトーン出力時は LED 点灯
+	vPortSet_TrueAsLo(PORT_OUT1, (bmPorts & ((1UL << PORT_INPUT1) | (1UL << PORT_INPUT2)))); // 送信ボタン押下時は LED 点灯
+	vPortSet_TrueAsLo(PORT_OUT2, (u8FreeBlk != 2)); // 出力データが有る時は LED 点灯
 #endif
 }
 
