@@ -117,6 +117,7 @@ typedef struct {
 
 	// メインアプリケーション処理部
 	void *prPrsEv; //!< vProcessEvCoreSlpまたはvProcessEvCorePwrなどの処理部へのポインタ
+	uint8 u8Hnd_vProcessEvCore; //!< vProcessEvCore のハンドル
 
 	// DEBUG
 	uint8 u8DebugLevel; //!< デバッグ出力のレベル
@@ -139,6 +140,7 @@ typedef struct {
 
 	// config mode
 	uint8 u8Mode; //!< 動作モード(IO M1,M2,M3 から設定される)
+	uint8 u8PairingMode;	// ペアリングモード
 
 	// button manager
 	tsBTM_Config sBTM_Config; //!< ボタン入力（連照により状態確定する）管理構造体
@@ -148,6 +150,7 @@ typedef struct {
 	// Counter
 	uint32 u32CtTimer0; //!< 64fps カウンタ。スリープ後も維持
 	uint16 u16TxFrame; //!< 送信フレーム数
+	uint16 u16CtRndCt; //!< 起動時の送信タイミングにランダムのブレを作る
 
 	// mode
 	bool_t bTestMode; //!< テストモード
@@ -156,6 +159,15 @@ typedef struct {
 	// codec
 	tsCODEC sEncode; //!< CODEC 構造体 (エンコーダ)
 	tsCODEC sDecode; //!< CODEC 構造体 (エンコーダ)
+
+	// auto pairing
+	uint32 u32ReqAppId;	//!< 要求AppId
+	uint8 u8ReqCh;	//!< 要求Channel
+	uint32 u32CandidateAppId;	//!< AppId候補
+	uint32 u32AnotherAppId;	//!< 対向AppId
+	uint8 u8CandidateCh;	//!< Channel候補
+	uint16 u16MatchCount;	//!< pairingマッチカウンタ
+	uint16 u16PeerMatched;	//!< 相手方pairingマッチカウンタ
 } tsAppData;
 
 extern tsAppData sAppData; //!< アプリケーションデータ  @ingroup MASTER

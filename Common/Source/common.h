@@ -159,6 +159,8 @@ extern const uint8 au8IoModeTbl_To_LogicalID[8]; //!< tePortConf2Mode から論�
 #define IS_LOGICAL_ID_PARENT(s) (s == 0) //!< 論理アドレスが親機の場合
 #define IS_LOGICAL_ID_REPEATER(s) (s == 254) //!< 論理アドレスがリピータの場合
 
+#define AUTO_PAIR_COUNT_MIN (2)	//!< 自動ペアリング確認の最低カウント
+
 /*
  * シリアルコマンドの定義
  */
@@ -189,6 +191,7 @@ extern const uint8 au8IoModeTbl_To_LogicalID[8]; //!< tePortConf2Mode から論�
 // Packet CMD IDs
 #define TOCONET_PACKET_CMD_APP_USER_IO_DATA (TOCONET_PACKET_CMD_APP_USER+0) //!< IO の入出力データ
 #define TOCONET_PACKET_CMD_APP_USER_IO_DATA_EXT (TOCONET_PACKET_CMD_APP_USER+1) //!< IO の入出力データ
+#define TOCONET_PACKET_CMD_APP_USER_PAIRING (TOCONET_PACKET_CMD_APP_USER+3) //!< auto pairing
 
 /* Modbus ASCII output functions */
 void vModbOut_AckNack(tsFILE *pSer, bool_t bAck);

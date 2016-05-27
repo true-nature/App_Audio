@@ -41,8 +41,13 @@ typedef enum
 	E_STATE_APP_BASE = ToCoNet_STATE_APP_BASE,//!< ToCoNet 組み込み状態と重複させないため
 	E_STATE_APP_WAIT_IO_FIRST_CAPTURE,        //!< 最初のADCやDIの状態確定を待つ
 	E_STATE_APP_SET_INITIAL_ON,               //!< 起動時に全ポートをONにする
-//	E_STATE_INITIAL_LISTEN,
-	E_STATE_APP_SLEEPING                      //!< スリープ処理
+	E_STATE_APP_SLEEPING,                      //!< スリープ処理
+
+	E_STATE_APP_PAIR_SCAN,					//!< Auto Pairing Scan phase
+	E_STATE_APP_PAIR_PROPOSE,				//!< Auto Pairing Propose phase
+	E_STATE_APP_PAIR_CONFIRM,				//!< Auto Pairing Confirm phase
+	E_STATE_APP_PAIR_COMPLETE,				//!< Auto Pairing Complete phase
+	E_STATE_APP_PAIR_FAILED,				//!< Auto Pairing Failed (timeout)
 } teStateApp;
 
 #endif /* EVENT_H_ */
