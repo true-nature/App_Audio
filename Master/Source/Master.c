@@ -106,6 +106,9 @@ static void vSerialInit(uint32, tsUartOpt *);
 void vProcessSerialCmd(tsModbusCmd *pSer);
 void vSerInitMessage();
 
+//static void vRxEvent_Transceiver(tsRxDataApp *psRx);
+//static void vRxEvent_Pairing(tsRxDataApp *psRx);
+
 static bool_t bCheckDupPacket(tsDupChk_Context *pc, uint32 u32Addr, uint8 u8Seq);
 
 static void vReceiveAudioData(tsRxDataApp *pRx);
@@ -147,7 +150,9 @@ tsDupChk_Context sDupChk; //!< 重複チェック(IO関連のデータ転送)  @
 tsImaAdpcmState sIMAadpcm_state_Enc; //!< ADPCM エンコーダーの状態ベクトル  @ingroup MASTER
 tsImaAdpcmState sIMAadpcm_state_Dec; //!< ADPCM デコーダーの状態ベクトル @ingroup MASTER
 
-uint16 sIdleCountDown;	//!< アイドル状態を監視するカウンター
+static uint16 sIdleCountDown;	//!< アイドル状態を監視するカウンター
+
+//static void (*sRxEventHandler)(tsRxDataApp *psRx) = vRxEvent_Transceiver;
 
 /****************************************************************************/
 /***        FUNCTIONS                                                     ***/
@@ -296,10 +301,10 @@ static void vProcessEvCore(tsEvent *pEv, teEvent eEvent, uint32 u32evarg) {
  * @param u32evarg
  */
 void vProcessEvCoreSub(tsEvent *pEv, teEvent eEvent, uint32 u32evarg) {
+
 	switch (pEv->eState) {
 	case E_STATE_IDLE:
 		if (eEvent == E_EVENT_START_UP) {
-
 			// RUNNING 状態へ遷移
 			ToCoNet_Event_SetState(pEv, E_STATE_RUNNING);
 		}
@@ -348,9 +353,9 @@ static void vProcessEvCorePairing(tsEvent *pEv, teEvent eEvent, uint32 u32evarg)
 	case E_STATE_IDLE:
 		if (eEvent == E_EVENT_START_UP) {
 			vfPrintf(&sSerStream, "!INF ENTERED AUTO PAIRING MODE.@%dms"LB, u32TickCount_ms);
-			vPortSetHi(PORT_OUT1);
-			vPortSetHi(PORT_OUT2);
-			vPortSetHi(PORT_OUT3);
+			vPortSetLo(PORT_OUT1);
+			vPortSetLo(PORT_OUT2);
+			vPortSetLo(PORT_OUT3);
 			vPortSetHi(PORT_OUT4);
 
 			sAppData.u16CtRndCt = 0;
@@ -393,7 +398,7 @@ static void vProcessEvCorePairing(tsEvent *pEv, teEvent eEvent, uint32 u32evarg)
 			vSendPairingRequest(pEv->eState);
 			const uint32 mask = 0x7F;
 			const uint32 duty = 1;
-			vPortSet_TrueAsLo(PORT_OUT4, (sAppData.u32CtTimer0 & mask) <= duty);
+			vPortSet_TrueAsLo(PORT_OUT1, (sAppData.u32CtTimer0 & mask) > duty);
 		}
 		// ペアリング相手が現れたら提案確認フェーズ
 		if (eEvent == E_EVENT_TICK_TIMER) {
@@ -415,7 +420,7 @@ static void vProcessEvCorePairing(tsEvent *pEv, teEvent eEvent, uint32 u32evarg)
 			vSendPairingRequest(pEv->eState);
 			const uint32 mask = 0x1F;
 			const uint32 duty = 1;
-			vPortSet_TrueAsLo(PORT_OUT4, (sAppData.u32CtTimer0 & mask) <= duty);
+			vPortSet_TrueAsLo(PORT_OUT1, (sAppData.u32CtTimer0 & mask) > duty);
 		}
 		if (1000 <= PRSEV_u32TickFrNewState(pEv)) {
 			// 1秒待ってから判断
@@ -451,7 +456,7 @@ static void vProcessEvCorePairing(tsEvent *pEv, teEvent eEvent, uint32 u32evarg)
 			vSendPairingRequest(pEv->eState);
 			const uint32 mask = 0xF;
 			const uint32 duty = 1;
-			vPortSet_TrueAsLo(PORT_OUT4, (sAppData.u32CtTimer0 & mask) <= duty);
+			vPortSet_TrueAsLo(PORT_OUT1, (sAppData.u32CtTimer0 & mask) > duty);
 		}
 		else if (eEvent == E_EVENT_TICK_TIMER) {
 			if (1000 <= PRSEV_u32TickFrNewState(pEv)) {
@@ -489,7 +494,7 @@ static void vProcessEvCorePairing(tsEvent *pEv, teEvent eEvent, uint32 u32evarg)
 		// 諦めてリセット
 		if (eEvent == E_EVENT_NEW_STATE) {
 			V_PRINT("!INF RESET SYSTEM.");
-			vPortSetHi(PORT_OUT4);
+			vPortSetLo(PORT_OUT1);
 			vWait(1000000);
 			vAHI_SwReset();
 		}
@@ -685,6 +690,7 @@ void cbAppColdStart(bool_t bStart) {
 			sToCoNet_AppContext.u32ChMask = CHMASK;
 		} else {
 			ToCoNet_Event_Register_State_Machine(vProcessEvCore);
+			sAppData.prPrsEv = (void*) vProcessEvCore;
 		}
 
 		// MAC の初期化
@@ -766,8 +772,7 @@ void cbToCoNet_vMain(void) {
  *
  * - パケット種別
  *   - TOCONET_PACKET_CMD_APP_DATA : シリアル電文パケット
- *   - TOCONET_PACKET_CMD_APP_USER_IO_DATA : IO状態の伝送
- *   - TOCONET_PACKET_CMD_APP_USER_IO_DATA_EXT : シリアル電文による IO 状態の伝送
+ *   - TOCONET_PACKET_CMD_APP_USER_PAIRING : ペアリング要求
  *
  * @param psRx 受信パケット
  */
@@ -782,7 +787,7 @@ void cbToCoNet_vRxEvent(tsRxDataApp *psRx) {
 		vReceiveAudioData(psRx);
 		break;
 	case TOCONET_PACKET_CMD_APP_USER_PAIRING:	// auto pairing
-		if (PRSEV_eGetStateH(sAppData.u8Hnd_vProcessEvCore) == E_STATE_RUNNING) { // 稼動状態でパケット処理をする
+		if (sAppData.u8PairingMode && PRSEV_eGetStateH(sAppData.u8Hnd_vProcessEvCore) == E_STATE_RUNNING) { // 稼動状態でパケット処理をする
 			vReceivePairingData(psRx);
 		}
 		break;
@@ -855,8 +860,10 @@ void cbToCoNet_vHwEvent(uint32 u32DeviceId, uint32 u32ItemBitmap) {
 		break;
 
 	case E_AHI_DEVICE_TICK_TIMER: //比較的頻繁な処理
-		// ボタンの判定を行う。
-		vProcessAudio();
+		if (!sAppData.u8PairingMode) {
+			// オーディオ処理を行う。
+			vProcessAudio();
+		}
 		break;
 
 	case E_AHI_DEVICE_TIMER0:
@@ -868,8 +875,14 @@ void cbToCoNet_vHwEvent(uint32 u32DeviceId, uint32 u32ItemBitmap) {
 			DUPCHK_bFind(&sDupChk, 0, NULL);
 		}
 
+		if (!sAppData.u8PairingMode) {
+			// イベント処理部分にイベントを送信
+			ToCoNet_Event_Process(E_EVENT_APP_TICK_A, 0, (void*)vProcessEvCore);
+		}
 		// イベント処理部分にイベントを送信
-		ToCoNet_Event_Process(E_EVENT_APP_TICK_A, 0, (void*)vProcessEvCore);
+		if (sAppData.prPrsEv && (sAppData.u32CtTimer0 & 1)) {
+			ToCoNet_Event_Process(E_EVENT_APP_TICK_A, 0, sAppData.prPrsEv);
+		}
 
 		// シリアル画面制御のためのカウンタ
 		if (!(--u16HoldUpdateScreen)) {
@@ -1645,8 +1658,8 @@ static void vProcessAudio() {
 
 	// LED の点灯
 #ifdef POSITIVE_LOGIC_LED
-	vPortSet_TrueAsLo(PORT_OUT1, !(bmPorts & ((1UL << PORT_INPUT1) | (1UL << PORT_INPUT2)))); // 送信ボタン押下時は LED 点灯
-	vPortSet_TrueAsLo(PORT_OUT2, !(u8FreeBlk != 2)); // 出力データが有る時は LED 点灯
+	vPortSet_TrueAsLo(PORT_OUT2, !(bmPorts & ((1UL << PORT_INPUT1) | (1UL << PORT_INPUT2)))); // 送信ボタン押下時は LED 点灯
+	vPortSet_TrueAsLo(PORT_OUT1, !(u8FreeBlk != 2)); // 出力データが有る時は LED 点灯
 #else
 	vPortSet_TrueAsLo(PORT_OUT1, (bmPorts & ((1UL << PORT_INPUT1) | (1UL << PORT_INPUT2)))); // 送信ボタン押下時は LED 点灯
 	vPortSet_TrueAsLo(PORT_OUT2, (u8FreeBlk != 2)); // 出力データが有る時は LED 点灯
