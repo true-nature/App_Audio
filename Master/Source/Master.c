@@ -227,10 +227,6 @@ static void vProcessEvCore(tsEvent *pEv, teEvent eEvent, uint32 u32evarg) {
 
 	case E_STATE_RUNNING:
 		if (eEvent == E_EVENT_NEW_STATE) {
-			// OPAMPの電源を投入
-			vPortSetHi(PORT_OUT3);
-			vPortSetLo(PORT_OUT4);
-
 			// オーディオデバイス (ADC/PWM の初期化)
 			tsAD_Conf sAD_Conf;
 			memset(&sAD_Conf, 0, sizeof(tsAD_Conf));
@@ -275,6 +271,7 @@ static void vProcessEvCore(tsEvent *pEv, teEvent eEvent, uint32 u32evarg) {
 #endif
 				// OPAMPの電源を遮断
 				vPortSetLo(PORT_OUT3);
+				// スピーカーアンプ休止
 				vPortSetHi(PORT_OUT4);
 				pEv->bKeepStateOnSetAll = FALSE;
 				ToCoNet_Event_SetState(pEv, E_STATE_APP_SLEEPING);
@@ -668,6 +665,7 @@ void cbAppColdStart(bool_t bStart) {
 #endif
 		// OPAMPの電源を遮断
 		vPortSetLo(PORT_OUT3);
+		// スピーカーアンプ休止
 		vPortSetHi(PORT_OUT4);
 
 		sAppData.bPktMon = TRUE;
@@ -746,6 +744,7 @@ void cbAppWarmStart(bool_t bStart) {
 #endif
 		// OPAMPの電源を遮断
 		vPortSetLo(PORT_OUT3);
+		// スピーカーアンプ休止
 		vPortSetHi(PORT_OUT4);
 
 		// MAC の開始
@@ -1664,6 +1663,8 @@ static void vProcessAudio() {
 	vPortSet_TrueAsLo(PORT_OUT1, (bmPorts & ((1UL << PORT_INPUT1) | (1UL << PORT_INPUT2)))); // 送信ボタン押下時は LED 点灯
 	vPortSet_TrueAsLo(PORT_OUT2, (u8FreeBlk != 2)); // 出力データが有る時は LED 点灯
 #endif
+	vPortSet_TrueAsLo(PORT_OUT3, (bTestTone || !(bmPorts & (1UL << PORT_INPUT1))) && (u8FreeBlk == 2));	// SW1だけが押されている、または出力データがある時はOPAMP電源投入
+	vPortSet_TrueAsLo(PORT_OUT4, (u8FreeBlk != 2)); // 出力データが有る時はスピーカーアンプ有効
 }
 
 /** @ingroup MASTER
