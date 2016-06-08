@@ -79,12 +79,13 @@
 /***        Macro Definitions                                             ***/
 /****************************************************************************/
 
-//!< 起床アイドルカウンタ初期値 (64FPS)
-#define WAKEUP_DURATION_COUNT 2
+//!< 起床アイドルカウンタ初期値 (1000FPS)
+#define WAKEUP_DURATION_ms 18
+#define WAKEUP_DURATION_COUNT (((WAKEUP_DURATION_ms * sToCoNet_AppContext.u16TickHz) / 1000))
 //!< 最長アイドル時間
 #define MAX_IDLE_TIME_sec 5
 //!< 64FPSのイベント毎に行うアイドル状態カウントダウンの初期値
-#define IDLE_COUNT_RESET_VALUE (MAX_IDLE_TIME_sec * 64)
+#define IDLE_COUNT_RESET_VALUE (MAX_IDLE_TIME_sec * sToCoNet_AppContext.u16TickHz)
 //!< カソードコモンの2色LEDを使うのでHighで点灯
 #define POSITIVE_LOGIC_LED 1
 
@@ -209,7 +210,7 @@ static void vProcessEvCore(tsEvent *pEv, teEvent eEvent, uint32 u32evarg) {
 				sIdleCountDown = WAKEUP_DURATION_COUNT;
 			}
 		}
-		else if (eEvent == E_EVENT_APP_TICK_A) {
+		else if (eEvent == E_EVENT_TICK_TIMER) {
 			// アイドル状態の監視
 			if (sIdleCountDown > WAKEUP_DURATION_COUNT) {
 				/// RUNNING 状態へ遷移
@@ -239,7 +240,7 @@ static void vProcessEvCore(tsEvent *pEv, teEvent eEvent, uint32 u32evarg) {
 
 			// 開始
 			vAM_StartStopSampling(TRUE);
-		} else if (eEvent == E_EVENT_APP_TICK_A) {
+		} else if (eEvent == E_EVENT_TICK_TIMER) {
 			// 親機(設定モード)はスリープしない。子機はアイドル時に強制スリープ。
 			if (IS_LOGICAL_ID_CHILD(au8IoModeTbl_To_LogicalID[sAppData.u8Mode])) {
 				// アイドル状態の監視
