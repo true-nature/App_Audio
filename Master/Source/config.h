@@ -85,7 +85,7 @@ extern "C" {
 #endif
 
 // スリープ間隔
-#define MODE4_SLEEP_DUR_ms 1000UL
+#define MODE4_SLEEP_DUR_ms 600UL
 #define MODE7_SLEEP_DUR_ms 10000UL
 
 /**
