@@ -298,7 +298,7 @@ static void vProcessEvCore(tsEvent *pEv, teEvent eEvent, uint32 u32evarg) {
  * @param eEvent
  * @param u32evarg
  */
-void vProcessEvCoreSub(tsEvent *pEv, teEvent eEvent, uint32 u32evarg) {
+static void vProcessEvCoreSub(tsEvent *pEv, teEvent eEvent, uint32 u32evarg) {
 
 	switch (pEv->eState) {
 	case E_STATE_IDLE:
