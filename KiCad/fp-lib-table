@@ -1,3 +1,2 @@
 (fp_lib_table
-  (lib (name favorites)(type KiCad)(uri ${KIPRJMOD}/../../kicad-lib/favorites.pretty)(options "")(descr ""))
 )
